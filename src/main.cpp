@@ -1,6 +1,5 @@
-#include "Camera.cpp"
-#include "Cube.cpp"
-#include "ShaderProgram.cpp"
+#include "../include/Camera.hpp"
+#include "../include/Chunk.hpp"
 #include <SFML/Window.hpp>
 #include <SFML/Window/Context.hpp>
 #include <SFML/Window/ContextSettings.hpp>
@@ -45,10 +44,20 @@ int main()
   }
 
   shaders.use();
-
-  Cube cube("../assets/grass_debug.jpg");
-
   shaders.setUniform("projection", camera.Projection());
+
+  // Cube cube("../assets/grass_debug.jpg");
+  // Inicjalizowanie chunku
+  // Inicjalizowanie palety Cube (bloków)
+  CubePalette palette;
+
+  // Inicjalizowanie generatora PerlinNoise
+  PerlinNoise perlin;
+
+  // Tworzenie chunków w okolicy gracza
+  const size_t chunkSize = 16; // przykładowy rozmiar chunków
+  Chunk<chunkSize, chunkSize, chunkSize> chunk(glm::vec2(0, 0), palette);
+  chunk.Generate(perlin);
 
   sf::Clock clock;
   sf::Vector2i windowCenter(window.getSize().x / 2, window.getSize().y / 2);
@@ -109,7 +118,8 @@ int main()
     shaders.setUniform("view", camera.View());
     shaders.setUniform("projection", camera.Projection());
 
-    cube.draw();
+    // cube.draw();
+    chunk.Draw(shaders);
 
     window.display();
   }
