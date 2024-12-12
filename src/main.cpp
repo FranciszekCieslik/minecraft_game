@@ -59,12 +59,17 @@ int main()
   Chunk<chunkSize, chunkSize, chunkSize> chunk(glm::vec2(0, 0), palette);
   chunk.Generate(perlin);
 
-  sf::Clock clock;
   sf::Vector2i windowCenter(window.getSize().x / 2, window.getSize().y / 2);
   sf::Vector2i mousePosition = sf::Mouse::getPosition();
-
   // Enable depth testing
   glEnable(GL_DEPTH_TEST);
+
+  // RayTracing dla niszczenia i tworzenia bloków
+  Ray::HitType hitType;
+  Chunk<chunkSize, chunkSize, chunkSize>::HitRecord hitRecord;
+
+  // Clock start
+  sf::Clock clock;
 
   while (window.isOpen())
   {
@@ -83,6 +88,29 @@ int main()
       else if (event.type == sf::Event::Resized)
       {
         glViewport(0, 0, event.size.width, event.size.height);
+      } // add and remove blocks
+      else if (event.type == sf::Event::MouseButtonPressed)
+      {
+        // hit
+        hitType = chunk.Hit(Ray(camera.m_position, camera.m_front), 0.0f, 3.0f, hitRecord);
+        if (hitType == Ray::HitType::Hit)
+        {
+          std::cout << "Trafiono blok na pozycji: " << hitRecord.m_cubeIndex.x << ";" <<
+          hitRecord.m_cubeIndex.y << ";" << hitRecord.m_cubeIndex.z << std::endl;
+        }
+        else
+        {
+          std::cout << "Brak trafienia." << std::endl;
+        }
+
+        if (event.mouseButton.button == sf::Mouse::Left)
+        {
+          std::cout << "\nleft";
+        }
+        else if (event.mouseButton.button == sf::Mouse::Right)
+        {
+          std::cout << "\nright\n";
+        }
       }
     }
 
@@ -126,6 +154,4 @@ int main()
 
   return 0;
 }
-
-
 // g++ -o main main.cpp Camera.cpp Cube.cpp ShaderProgram.cpp PerlinNoise.cpp CubePalette.cpp -lGLEW -lGL -lsfml-window -lsfml-graphics -lsfml-system -I/usr/include/glm -std=c++20
