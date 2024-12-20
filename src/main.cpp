@@ -71,6 +71,10 @@ int main()
   // Clock start
   sf::Clock clock;
 
+  //                 /z   / -x /pion(y)
+  chunk.PlaceBlock(8.0f, 8.0f, 8.0f, Cube::Type::Coord);
+  chunk.PlaceBlock(10.0f, 8.0f, 8.0f, Cube::Type::Stone);
+
   while (window.isOpen())
   {
     const float dt = clock.restart().asSeconds();
@@ -95,21 +99,34 @@ int main()
         hitType = chunk.Hit(Ray(camera.m_position, camera.m_front), 0.0f, 3.0f, hitRecord);
         if (hitType == Ray::HitType::Hit)
         {
-          std::cout << "Trafiono blok na pozycji: " << hitRecord.m_cubeIndex.x << ";" <<
-          hitRecord.m_cubeIndex.y << ";" << hitRecord.m_cubeIndex.z << std::endl;
-        }
-        else
-        {
-          std::cout << "Brak trafienia." << std::endl;
-        }
+          // std::cout << "Cube pos: " << hitRecord.m_cubeIndex.x << ";" << hitRecord.m_cubeIndex.y << ";" << hitRecord.m_cubeIndex.z << std::endl;
+          // std::cout << "Neighbour pos: " << hitRecord.m_neighbourIndex.x << ";" << hitRecord.m_neighbourIndex.y << ";" << hitRecord.m_neighbourIndex.z << std::endl;
+          if (event.mouseButton.button == sf::Mouse::Left)
+          {
+            // std::cout << "rmv\n";
+            chunk.RemoveBlock(hitRecord.m_cubeIndex.z, hitRecord.m_cubeIndex.x, hitRecord.m_cubeIndex.y);
+          }
+          else if (event.mouseButton.button == sf::Mouse::Right)
+          {
+            // std::cout << "add\n";
 
-        if (event.mouseButton.button == sf::Mouse::Left)
-        {
-          std::cout << "\nleft";
-        }
-        else if (event.mouseButton.button == sf::Mouse::Right)
-        {
-          std::cout << "\nright\n";
+            // Oblicz środek trafionego bloku
+            glm::vec3 hitCubeCenter = glm::vec3(hitRecord.m_cubeIndex) + glm::vec3(0.5f);
+
+            // Oblicz kierunek od kamery do trafionego bloku
+            glm::vec3 direction = glm::normalize(hitCubeCenter - camera.m_position);
+
+            // Zaokrąglij kierunek do najbliższego wektora jednostkowego
+            glm::ivec3 neighborOffset(
+                (direction.x > 0.5f) ? 1 : ((direction.x < -0.5f) ? -1 : 0),
+                (direction.y > 0.5f) ? 1 : ((direction.y < -0.5f) ? -1 : 0),
+                (direction.z > 0.5f) ? 1 : ((direction.z < -0.5f) ? -1 : 0));
+
+            // Oblicz współrzędne sąsiada
+            hitRecord.m_neighbourIndex = hitRecord.m_cubeIndex + neighborOffset;
+            
+            chunk.PlaceBlock(hitRecord.m_neighbourIndex.y, hitRecord.m_neighbourIndex.x, hitRecord.m_neighbourIndex.z, Cube::Type::Stone);
+          }
         }
       }
     }

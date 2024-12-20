@@ -3,8 +3,17 @@
 #include <string>
 #include <GL/glew.h>
 
-class Cube {
+class Cube
+{
 public:
+  enum class Type
+  {
+    None,
+    Grass,
+    Stone,
+    Coord
+  };
+
   Cube(const std::string &texturePath);
 
   Cube() = delete;
