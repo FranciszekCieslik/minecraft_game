@@ -124,7 +124,7 @@ int main()
 
             // Oblicz współrzędne sąsiada
             hitRecord.m_neighbourIndex = hitRecord.m_cubeIndex + neighborOffset;
-            
+
             chunk.PlaceBlock(hitRecord.m_neighbourIndex.y, hitRecord.m_neighbourIndex.x, hitRecord.m_neighbourIndex.z, Cube::Type::Stone);
           }
         }
@@ -171,4 +171,4 @@ int main()
 
   return 0;
 }
-// g++ -o main main.cpp Camera.cpp Cube.cpp ShaderProgram.cpp PerlinNoise.cpp CubePalette.cpp -lGLEW -lGL -lsfml-window -lsfml-graphics -lsfml-system -I/usr/include/glm -std=c++20
+//g++ -o main main.cpp Camera.cpp Cube.cpp ShaderProgram.cpp PerlinNoise.cpp CubePalette.cpp AABB.cpp Ray.cpp -lGLEW -lGL -lsfml-window -lsfml-graphics -lsfml-system -I/usr/include/glm -std=c++20

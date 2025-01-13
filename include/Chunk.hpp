@@ -183,6 +183,9 @@ inline Ray::HitType Chunk<Depth, Width, Height>::Hit(const Ray &ray, Ray::time_t
 	//	calculate chunk shift
 	//	for x,y,z in Width, Height, Depth
 	// Iterate over all blocks in the chunk
+
+	float closestDistance = std::numeric_limits<float>::max(); // Przechowuje najbliższy dystans
+
 	Ray::HitType hitType = Ray::HitType::Miss;
 	for (uint8_t x = 0; x < Width; ++x)
 	{
@@ -203,14 +206,22 @@ inline Ray::HitType Chunk<Depth, Width, Height>::Hit(const Ray &ray, Ray::time_t
 				AABB::HitRecord cubeRecord;
 				if (cubeAABB.Hit(ray, min, max, cubeRecord) == Ray::HitType::Hit)
 				{
-					record.m_cubeIndex = glm::ivec3(glm::floor(cubeRecord.m_point));
+					// record.m_cubeIndex = glm::ivec3(glm::floor(cubeRecord.m_point));
 
-					max = cubeRecord.m_time; // Update max to find the nearest hit
-					hitType = Ray::HitType::Hit;
+					// max = cubeRecord.m_time; // Update max to find the nearest hit
+					// hitType = Ray::HitType::Hit;
 
-					// Early exit if only the closest hit is required
-					if (max == min)
-						return hitType;
+					// // Early exit if only the closest hit is required
+					// if (max == min)
+					// 	return hitType;
+
+					float distance = glm::distance(ray.Origin(), cubeRecord.m_point);
+					if (distance < closestDistance)
+					{
+						closestDistance = distance;
+						record.m_cubeIndex = glm::ivec3(glm::floor(cubeRecord.m_point));
+						hitType = Ray::HitType::Hit;
+					}
 				}
 			}
 		}
