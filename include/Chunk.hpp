@@ -35,6 +35,7 @@ public:
 	Ray::HitType Hit(const Ray &ray, Ray::time_t min, Ray::time_t max, HitRecord &record) const;
 	bool RemoveBlock(uint8_t width, uint8_t height, uint8_t depth);
 	bool PlaceBlock(uint8_t width, uint8_t height, uint8_t depth, Cube::Type type);
+	glm::vec2 getOrigin() { return m_origin; };
 
 private:
 	size_t CoordsToIndex(size_t depth, size_t width, size_t height) const;

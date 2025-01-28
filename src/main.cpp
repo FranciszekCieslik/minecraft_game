@@ -1,5 +1,6 @@
 #include "../include/Camera.hpp"
 #include "../include/Chunk.hpp"
+#include "../include/World.hpp"
 #include <SFML/Window.hpp>
 #include <SFML/Window/Context.hpp>
 #include <SFML/Window/ContextSettings.hpp>
@@ -46,24 +47,13 @@ int main()
   shaders.use();
   shaders.setUniform("projection", camera.Projection());
 
-  // Cube cube("../assets/grass_debug.jpg");
-  // Inicjalizowanie chunku
-  // Inicjalizowanie palety Cube (bloków)
-  CubePalette palette;
-
-  // Inicjalizowanie generatora PerlinNoise
-  PerlinNoise perlin;
-
-  // Tworzenie chunków w okolicy gracza
-  const size_t chunkSize = 16; // przykładowy rozmiar chunków
-  Chunk<chunkSize, chunkSize, chunkSize> chunk(glm::vec2(0, 0), palette);
-  chunk.Generate(perlin);
-
   sf::Vector2i windowCenter(window.getSize().x / 2, window.getSize().y / 2);
   sf::Vector2i mousePosition = sf::Mouse::getPosition();
   // Enable depth testing
   glEnable(GL_DEPTH_TEST);
 
+  const size_t chunkSize = 16; // przykładowy rozmiar chunków
+  World<chunkSize, 5> world;
   // RayTracing dla niszczenia i tworzenia bloków
   Ray::HitType hitType;
   Chunk<chunkSize, chunkSize, chunkSize>::HitRecord hitRecord;
@@ -71,16 +61,15 @@ int main()
   // Clock start
   sf::Clock clock;
 
-  //                 /z   / -x /pion(y)
-  chunk.PlaceBlock(8.0f, 8.0f, 8.0f, Cube::Type::Coord);
-  chunk.PlaceBlock(10.0f, 8.0f, 8.0f, Cube::Type::Stone);
-
   while (window.isOpen())
   {
     const float dt = clock.restart().asSeconds();
 
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    world.getChunk(camera.m_position);
+    auto chunk = world.m_chunk;
 
     sf::Event event;
     while (window.pollEvent(event))
@@ -96,16 +85,16 @@ int main()
       else if (event.type == sf::Event::MouseButtonPressed)
       {
         // hit
-        hitType = chunk.Hit(Ray(camera.m_position, camera.m_front), -6.0f, 6.0f, hitRecord);
+        hitType = chunk->Hit(Ray(camera.m_position, camera.m_front), -6.0f, 6.0f, hitRecord);
         if (hitType == Ray::HitType::Hit)
         {
           if (event.mouseButton.button == sf::Mouse::Left)
           {
-            chunk.RemoveBlock(hitRecord.m_cubeIndex.z, hitRecord.m_cubeIndex.x, hitRecord.m_cubeIndex.y);
+            chunk->RemoveBlock(hitRecord.m_cubeIndex.z, hitRecord.m_cubeIndex.x, hitRecord.m_cubeIndex.y);
           }
           else if (event.mouseButton.button == sf::Mouse::Right)
           {
-          
+
             glm::vec3 hitCubeCenter = glm::vec3(hitRecord.m_cubeIndex) + glm::vec3(0.5f);
             glm::vec3 direction = glm::normalize(hitCubeCenter - camera.m_position);
             glm::ivec3 neighborOffset(
@@ -115,7 +104,7 @@ int main()
 
             hitRecord.m_neighbourIndex = hitRecord.m_cubeIndex - neighborOffset;
 
-            chunk.PlaceBlock(hitRecord.m_neighbourIndex.z, hitRecord.m_neighbourIndex.x, hitRecord.m_neighbourIndex.y, Cube::Type::Stone);
+            chunk->PlaceBlock(hitRecord.m_neighbourIndex.z, hitRecord.m_neighbourIndex.x, hitRecord.m_neighbourIndex.y, Cube::Type::Stone);
           }
         }
       }
@@ -153,12 +142,12 @@ int main()
     shaders.setUniform("view", camera.View());
     shaders.setUniform("projection", camera.Projection());
 
-    // cube.draw();
-    chunk.Draw(shaders);
+    world.updateVisibleChunks(camera.m_position);
+    world.Draw(shaders);
 
     window.display();
   }
 
   return 0;
 }
-//g++ -o main main.cpp Camera.cpp Cube.cpp ShaderProgram.cpp PerlinNoise.cpp CubePalette.cpp AABB.cpp Ray.cpp -lGLEW -lGL -lsfml-window -lsfml-graphics -lsfml-system -I/usr/include/glm -std=c++20
+// g++ -o main main.cpp Camera.cpp Cube.cpp ShaderProgram.cpp PerlinNoise.cpp CubePalette.cpp AABB.cpp Ray.cpp -lGLEW -lGL -lsfml-window -lsfml-graphics -lsfml-system -I/usr/include/glm -std=c++20
