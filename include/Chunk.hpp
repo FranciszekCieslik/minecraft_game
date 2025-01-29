@@ -9,6 +9,7 @@
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <vector>
+#include <iostream>
 
 template <uint8_t Depth, uint8_t Width, uint8_t Height>
 class Chunk
@@ -23,7 +24,7 @@ class Chunk
 
 public:
 	Chunk(const glm::vec2 &origin, CubePalette &palette);
-	void Generate(const PerlinNoise &rng);
+	inline void Generate(const PerlinNoise &rng, float worldX, float worldZ);
 	void Draw(ShaderProgram &shader) const;
 
 	struct HitRecord
@@ -55,35 +56,31 @@ inline Chunk<Depth, Width, Height>::Chunk(const glm::vec2 &origin, CubePalette &
 }
 
 template <uint8_t Depth, uint8_t Width, uint8_t Height>
-inline void Chunk<Depth, Width, Height>::Generate(const PerlinNoise &rng)
+inline void Chunk<Depth, Width, Height>::Generate(const PerlinNoise &rng, float worldX, float worldZ)
 {
 	for (size_t x = 0; x < Width; ++x)
 	{
 		for (size_t z = 0; z < Depth; ++z)
 		{
-			// Generuj wysokość w oparciu o Perlin Noise
-			float height = rng.At(glm::vec3(x, z, 0) * 0.1f) * Height; // Skalowanie 0.1f dla gładkiego szumu
+			float height = rng.At(glm::vec3(worldX + x, worldZ + z, 0) * 0.1f) * Height;
 			size_t maxHeight = static_cast<size_t>(height);
+			if (x > 0)
+			{
+				float leftHeight = rng.At(glm::vec3(worldX + x - 1, worldZ + z, 0) * 0.1f) * Height;
+				maxHeight = std::min(maxHeight, static_cast<size_t>(leftHeight + 1));
+			}
+			if (z > 0)
+			{
+				float frontHeight = rng.At(glm::vec3(worldX + x, worldZ + z - 1, 0) * 0.1f) * Height;
+				maxHeight = std::min(maxHeight, static_cast<size_t>(frontHeight + 1));
+			}
 
-			// Wypełnij kolumnę blokami
 			for (size_t y = 0; y < Height; ++y)
 			{
 				auto &cube = m_data[CoordsToIndex(z, x, y)];
 				if (y <= maxHeight)
 				{
-					// Ustal typ bloku w zależności od wysokości
-					if (y == maxHeight)
-					{
-						cube.m_type = Cube::Type::Grass;
-					}
-					else // if (y < maxHeight - 3)
-					{
-						cube.m_type = Cube::Type::Stone;
-					}
-					// else
-					// {
-					// 	cube.m_type = Cube::Type::Dirt;
-					// }
+					cube.m_type = (y == maxHeight) ? Cube::Type::Grass : Cube::Type::Stone;
 					cube.m_isVisible = true;
 				}
 				else
@@ -94,7 +91,7 @@ inline void Chunk<Depth, Width, Height>::Generate(const PerlinNoise &rng)
 			}
 		}
 	}
-	UpdateVisibility(); // Zaktualizuj widoczność bloków
+	UpdateVisibility();
 }
 
 template <uint8_t Depth, uint8_t Width, uint8_t Height>
@@ -174,32 +171,30 @@ inline void Chunk<Depth, Width, Height>::UpdateVisibility()
 template <uint8_t Depth, uint8_t Width, uint8_t Height>
 inline Ray::HitType Chunk<Depth, Width, Height>::Hit(const Ray &ray, Ray::time_t min, Ray::time_t max, HitRecord &record) const
 {
-
 	AABB::HitRecord chunkRecord;
 	if (m_aabb.Hit(ray, min, max, chunkRecord) == Ray::HitType::Miss)
 	{
-		return Ray::HitType::Miss; // Early exit if the ray misses the chunk
+		return Ray::HitType::Miss;
 	}
 
-	//	calculate chunk shift
-	//	for x,y,z in Width, Height, Depth
-	// Iterate over all blocks in the chunk
-
-	float closestDistance = std::numeric_limits<float>::max(); // Przechowuje najbliższy dystans
-
+	float closestDistance = std::numeric_limits<float>::max();
 	Ray::HitType hitType = Ray::HitType::Miss;
+
+	glm::vec3 chunkOrigin = glm::vec3(m_origin.x, 0.0f, m_origin.y); // Przesunięcie chunku w świecie
+
 	for (uint8_t x = 0; x < Width; ++x)
 	{
 		for (uint8_t y = 0; y < Height; ++y)
 		{
 			for (uint8_t z = 0; z < Depth; ++z)
 			{
-				const CubeData &cube = m_data[z * Width * Height + y * Width + x];
+				auto &cube = m_data[CoordsToIndex(z, x, y)];
+
 				if (cube.m_type == Cube::Type::None)
 					continue;
 
-				// Define the cube's AABB
-				glm::vec3 cubeMin = m_aabb.Min() + glm::vec3(x, y, z);
+				// Uwzględniamy pozycję chunku w świecie
+				glm::vec3 cubeMin = chunkOrigin + glm::vec3(x, y, z);
 				glm::vec3 cubeMax = cubeMin + glm::vec3(1.0f);
 				AABB cubeAABB(cubeMin, cubeMax);
 
@@ -207,25 +202,21 @@ inline Ray::HitType Chunk<Depth, Width, Height>::Hit(const Ray &ray, Ray::time_t
 				AABB::HitRecord cubeRecord;
 				if (cubeAABB.Hit(ray, min, max, cubeRecord) == Ray::HitType::Hit)
 				{
-					// record.m_cubeIndex = glm::ivec3(glm::floor(cubeRecord.m_point));
-
-					// max = cubeRecord.m_time; // Update max to find the nearest hit
-					// hitType = Ray::HitType::Hit;
-
-					// // Early exit if only the closest hit is required
-					// if (max == min)
-					// 	return hitType;
-
 					float distance = glm::distance(ray.Origin(), cubeRecord.m_point);
 					if (distance < closestDistance)
 					{
 						closestDistance = distance;
-						record.m_cubeIndex = glm::ivec3(glm::floor(cubeRecord.m_point));
+						record.m_cubeIndex = glm::ivec3(glm::floor(cubeRecord.m_point) - chunkOrigin);
 						hitType = Ray::HitType::Hit;
 					}
 				}
 			}
 		}
+	}
+
+	if (hitType == Ray::HitType::Hit)
+	{
+		std::cout << "Hit! Block at: " << record.m_cubeIndex.x << ", " << record.m_cubeIndex.y << ", " << record.m_cubeIndex.z << std::endl;
 	}
 
 	return hitType;

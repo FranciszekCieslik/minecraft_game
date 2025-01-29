@@ -16,7 +16,7 @@ public:
             y = i / worldSize; // Wiersz
             x = i % worldSize; // Kolumna
             m_chunks.push_back(Chunk<chunkSize, chunkSize, chunkSize>(glm::vec2(x * chunkSize, y * chunkSize), palette));
-            m_chunks.back().Generate(perlin);
+            m_chunks.back().Generate(perlin, x * chunkSize, y * chunkSize); // Przekazujemy offset
         }
         m_chunk = &m_chunks.front();
     };
