@@ -34,7 +34,7 @@ int main()
 
   glViewport(0, 0, static_cast<GLsizei>(window.getSize().x), static_cast<GLsizei>(window.getSize().y));
 
-  Camera camera(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, -1.0f), -90.0f, 0.0f);
+  Camera camera(glm::vec3(16.0f, 16.0f, 16.0f), glm::vec3(0.0f, 0.0f, -1.0f), -90.0f, 0.0f);
 
   ShaderProgram shaders;
   GLuint programId = shaders.getProgramId();
@@ -85,7 +85,7 @@ int main()
       else if (event.type == sf::Event::MouseButtonPressed)
       {
         // hit
-        hitType = chunk->Hit(Ray(camera.m_position, camera.m_front), -6.0f, 6.0f, hitRecord);
+        hitType = chunk->Hit(Ray(camera.m_position, camera.m_front), 1.0f, 10.0f, hitRecord);
         if (hitType == Ray::HitType::Hit)
         {
           if (event.mouseButton.button == sf::Mouse::Left)
@@ -95,8 +95,10 @@ int main()
           else if (event.mouseButton.button == sf::Mouse::Right)
           {
 
-            glm::vec3 hitCubeCenter = glm::vec3(hitRecord.m_cubeIndex) + glm::vec3(0.5f);
-            glm::vec3 direction = glm::normalize(hitCubeCenter - camera.m_position);
+            auto origin = chunk->getOrigin();
+            glm::vec3 hitCubeCenter = glm::vec3(hitRecord.m_cubeIndex) + glm::vec3(0.5f) + glm::vec3(origin.x, origin.y, 0);
+            glm::vec3 direction = glm::normalize(hitCubeCenter - Ray(camera.m_position, camera.m_front).Origin());
+
             glm::ivec3 neighborOffset(
                 (direction.x > 0.5f) ? 1 : ((direction.x < -0.5f) ? -1 : 0),
                 (direction.y > 0.5f) ? 1 : ((direction.y < -0.5f) ? -1 : 0),
