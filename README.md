@@ -1,5 +1,7 @@
 # minecraft_game
 
+A simple version of the Minecraft game written in OpenGL, with an implied movement function, placing and removing blocks, and world generation.
+
 ### **Compiler command:**
 
 In `minecraft_game/src`:
